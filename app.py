@@ -1,14 +1,14 @@
 import streamlit as st
 import base64
 
-# تنظیمات پیکربندی صفحه
+# Page configuration
 st.set_page_config(
-    page_title="محاسبه ظرفیت برشی تیر بتنی", 
+    page_title="Concrete Beam Shear Capacity Calculator", 
     page_icon="🏗️", 
     layout="centered"
 )
 
-# تابع برای اعمال تصویر پس‌زمینه از فایل لوکال
+# Function to set background image and text colors
 def set_background(image_file):
     try:
         with open(image_file, "rb") as f:
@@ -16,57 +16,79 @@ def set_background(image_file):
         st.markdown(
             f"""
             <style>
+            /* Set the background image */
             .stApp {{
                 background-image: url(data:image/jpeg;base64,{encoded_string});
                 background-size: cover;
                 background-position: center;
                 background-attachment: fixed;
             }}
-            /* برای خوانایی بهتر متن‌ها روی بک‌گراند */
+            
+            /* Dark semi-transparent container to make white text readable */
             .main .block-container {{
-                background-color: rgba(255, 255, 255, 0.85);
-                border-radius: 10px;
+                background-color: rgba(0, 0, 0, 0.65);
+                border-radius: 15px;
                 padding: 2rem;
+                box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+            }}
+            
+            /* Force all text, headers, labels, and metric values to be white */
+            html, body, [class*="css"], .stMarkdown, p, h1, h2, h3, h4, h5, h6, label, span, .stText {{
+                color: white !important;
+            }}
+            
+            /* Specifically target metric values and labels */
+            [data-testid="stMetricValue"] > div {{
+                color: white !important;
+            }}
+            [data-testid="stMetricLabel"] > div {{
+                color: #e0e0e0 !important; /* Slightly off-white for metric labels */
+            }}
+            
+            /* Input fields styling (optional: dark background for inputs) */
+            .stNumberInput input {{
+                background-color: rgba(255, 255, 255, 0.1);
+                color: white !important;
             }}
             </style>
             """,
             unsafe_allow_html=True
         )
     except FileNotFoundError:
-        st.warning("فایل تصویر background.jpeg در مخزن یافت نشد. لطفاً نام و مسیر آن را بررسی کنید.")
+        st.warning("Background image 'background.jpeg' not found. Please check the repository.")
 
-# فراخوانی تصویر پس‌زمینه
+# Apply background and custom CSS
 set_background("background.jpeg")
 
-# عنوان و توضیحات علمی
-st.title("محاسبه مقاومت برشی تیر بتنی بدون خاموت")
+# Title and Description
+st.title("Shear Strength of Concrete Beams Without Stirrups")
 st.markdown("""
-این ابزار بر اساس روابط تجربی وارد شده، ظرفیت برشی نهایی ($V_u$) و فاصله ترک مورب از بر تکیه‌گاه ($a_{cr}$) را ارزیابی می‌کند.
+This tool evaluates the ultimate shear capacity ($V_u$) and the critical diagonal crack distance from the support ($a_{cr}$) based on the provided empirical formulas.
 """)
 st.latex(r"\frac{V_u}{bd} = 21.7 \rho^{0.363} (f'_c)^{0.249} d^{-0.314} (a/d)^{-0.352}")
 st.latex(r"a_{cr} = 0.521 a")
 
 st.markdown("---")
-st.subheader("پارامترهای هندسی و مصالح")
+st.subheader("Geometric & Material Parameters")
 
-# دریافت متغیرها از کاربر
+# Input parameters
 col1, col2 = st.columns(2)
 
 with col1:
-    b = st.number_input("عرض مقطع (b) - میلی‌متر", min_value=10.0, value=300.0, step=10.0)
-    d = st.number_input("عمق موثر (d) - میلی‌متر", min_value=10.0, value=400.0, step=10.0)
-    a = st.number_input("دهانه برشی (a) - میلی‌متر", min_value=10.0, value=1000.0, step=50.0)
+    b = st.number_input("Section Width (b) - mm", min_value=10.0, value=300.0, step=10.0)
+    d = st.number_input("Effective Depth (d) - mm", min_value=10.0, value=400.0, step=10.0)
+    a = st.number_input("Shear Span (a) - mm", min_value=10.0, value=1000.0, step=50.0)
 
 with col2:
-    fc = st.number_input("مقاومت فشاری بتن (f'c) - مگاپاسکال", min_value=1.0, value=25.0, step=1.0)
-    rho = st.number_input("نسبت آرماتور طولی (ρ)", min_value=0.0001, max_value=0.0500, value=0.0150, format="%.4f")
+    fc = st.number_input("Concrete Compressive Strength (f'c) - MPa", min_value=1.0, value=25.0, step=1.0)
+    rho = st.number_input("Longitudinal Reinforcement Ratio (ρ)", min_value=0.0001, max_value=0.0500, value=0.0150, format="%.4f")
 
 st.markdown("---")
 
-# بلوک محاسبات
-if st.button("محاسبه نتایج", type="primary"):
-    # محاسبه ترم تنش برشی (Vu / bd)
-    # توجه: پارامتر (a/d) باید بدون بعد باشد. 
+# Calculation Block
+if st.button("Calculate Results", type="primary"):
+    # Calculate shear stress term (Vu / bd)
+    # Note: (a/d) must be dimensionless
     a_over_d = a / d
     
     vu_over_bd = (21.7 
@@ -75,19 +97,19 @@ if st.button("محاسبه نتایج", type="primary"):
                   * (d ** -0.314) 
                   * (a_over_d ** -0.352))
     
-    # محاسبه نیروی برشی نهایی (نیوتن) و تبدیل به کیلونیوتن
+    # Calculate ultimate shear force (Newtons) and convert to KiloNewtons (kN)
     # Vu = [Vu/(bd)] * b * d
     vu_newtons = vu_over_bd * b * d
     vu_kn = vu_newtons / 1000.0
     
-    # محاسبه فاصله ترک
+    # Calculate crack distance
     a_cr = 0.521 * a
     
-    # نمایش خروجی‌ها
-    st.subheader("گزارش نتایج:")
+    # Display Outputs
+    st.subheader("Results Report:")
     
     col_res1, col_res2 = st.columns(2)
-    col_res1.metric(label="ظرفیت برشی نهایی (Vu)", value=f"{vu_kn:.2f} kN")
-    col_res2.metric(label="فاصله ترک از تکیه‌گاه (a_cr)", value=f"{a_cr:.2f} mm")
+    col_res1.metric(label="Ultimate Shear Capacity (Vu)", value=f"{vu_kn:.2f} kN")
+    col_res2.metric(label="Crack Distance from Support (a_cr)", value=f"{a_cr:.2f} mm")
     
-    st.info(f"مقدار تنش برشی اسمی محاسبه شده: {vu_over_bd:.3f} MPa")
+    st.info(f"Calculated Nominal Shear Stress (Vu/bd): {vu_over_bd:.3f} MPa")
