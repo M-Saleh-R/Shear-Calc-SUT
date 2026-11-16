@@ -42,18 +42,23 @@ def set_background(image_file):
                 color: white !important;
             }}
             [data-testid="stMetricLabel"] > div {{
-                color: #e0e0e0 !important; /* Slightly off-white for metric labels */
+                color: #e0e0e0 !important;
             }}
             
             /* FIX: Input fields styling (Dark text inside white boxes) */
             input[type="number"], div[data-baseweb="input"] input, .stNumberInput input {{
-                color: #1f1f1f !important; /* Dark text */
-                background-color: #ffffff !important; /* White background */
+                color: #1f1f1f !important;
+                background-color: #ffffff !important;
             }}
             
-            /* Make the +/- buttons inside the input boxes visible (dark color) */
+            /* Make the +/- buttons inside the input boxes visible */
             div[data-baseweb="input"] svg {{
                 fill: #1f1f1f !important;
+            }}
+            
+            /* FIX: Text inside st.info / st.warning / st.success boxes */
+            div[data-testid="stAlert"] p, div[data-testid="stAlert"] span {{
+                color: #1f1f1f !important;
             }}
             </style>
             """,
@@ -115,4 +120,5 @@ if st.button("Calculate Results", type="primary"):
     col_res1.metric(label="Ultimate Shear Capacity (Vu)", value=f"{vu_kn:.2f} kN")
     col_res2.metric(label="Crack Distance from Support (a_cr)", value=f"{a_cr:.2f} mm")
     
+    # Information Box
     st.info(f"Calculated Nominal Shear Stress (Vu/bd): {vu_over_bd:.3f} MPa")
