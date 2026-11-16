@@ -40,12 +40,14 @@ def set_background(image_file):
             /* Specifically target metric values and labels */
             [data-testid="stMetricValue"] > div {{
                 color: white !important;
+                font-size: 1.5rem !important;
             }}
             [data-testid="stMetricLabel"] > div {{
                 color: #e0e0e0 !important;
+                font-size: 1rem !important;
             }}
             
-            /* FIX: Input fields styling (Dark text inside white boxes) */
+            /* Input fields styling (Dark text inside white boxes) */
             input[type="number"], div[data-baseweb="input"] input, .stNumberInput input {{
                 color: #1f1f1f !important;
                 background-color: #ffffff !important;
@@ -56,7 +58,7 @@ def set_background(image_file):
                 fill: #1f1f1f !important;
             }}
             
-            /* FIX: Text inside st.info / st.warning / st.success boxes */
+            /* Text inside st.info / st.warning / st.success boxes */
             div[data-testid="stAlert"] p, div[data-testid="stAlert"] span {{
                 color: #1f1f1f !important;
             }}
@@ -73,10 +75,12 @@ set_background("background.jpeg")
 # Title and Description
 st.title("Shear Strength of Concrete Beams Without Stirrups")
 st.markdown("""
-This tool evaluates the ultimate shear capacity ($V_u$) and the critical diagonal crack distance from the support ($a_{cr}$) based on the provided empirical formulas.
+This advanced tool evaluates the ultimate shear capacity ($V_{pred}$), the calibrated design shear capacity ($V_{design}$), and the critical diagonal crack distance ($a_{cr}$) incorporating regime-dependent conformal safety factors.
 """)
-st.latex(r"\frac{V_u}{bd} = 21.7 \rho^{0.363} (f'_c)^{0.249} d^{-0.314} (a/d)^{-0.352}")
-st.latex(r"a_{cr} = 0.521 a")
+
+st.latex(r"\frac{V_{pred}}{bd} = 21.7 \rho^{0.363} (f'_c)^{0.249} d^{-0.314} (a/d)^{-0.352}")
+st.latex(r"V_{design} = \gamma_{95} V_{pred}")
+st.latex(r"a_{cr} \approx 0.504 a \quad \text{(90\% Interval: } 0.38a - 0.66a \text{)}")
 
 st.markdown("---")
 st.subheader("Geometric & Material Parameters")
@@ -97,7 +101,7 @@ st.markdown("---")
 
 # Calculation Block
 if st.button("Calculate Results", type="primary"):
-    # Calculate shear stress term (Vu / bd)
+    # 1. Shear Strength Calculation
     a_over_d = a / d
     
     vu_over_bd = (21.7 
@@ -106,19 +110,59 @@ if st.button("Calculate Results", type="primary"):
                   * (d ** -0.314) 
                   * (a_over_d ** -0.352))
     
-    # Calculate ultimate shear force (Newtons) and convert to KiloNewtons (kN)
-    vu_newtons = vu_over_bd * b * d
-    vu_kn = vu_newtons / 1000.0
+    # Calculate predicted ultimate shear force (kN)
+    v_pred_kn = (vu_over_bd * b * d) / 1000.0
     
-    # Calculate crack distance
-    a_cr = 0.521 * a
+    # 2. Regime-Dependent Safety Factor Calibration ('min adj' rule)
+    class_factors = []
+    
+    # Compressive strength classes
+    if fc <= 45:
+        class_factors.append(0.829)
+    elif fc <= 70:
+        class_factors.append(0.725)
+    else:
+        class_factors.append(0.754)
+        
+    # Effective depth classes
+    if d <= 300:
+        class_factors.append(0.816)
+    elif d <= 600:
+        class_factors.append(0.835)
+    else:
+        class_factors.append(0.643)
+        
+    # Section width classes
+    if b <= 300:
+        class_factors.append(0.821)
+    else:
+        class_factors.append(0.736)
+        
+    # The governing safety factor is the minimum of the applicable class factors
+    gamma_95 = min(class_factors)
+    
+    # Calculate design capacity
+    v_design_kn = gamma_95 * v_pred_kn
+    
+    # 3. Crack Distance Calculation (Geometric Mean & 90% Prediction Interval)
+    a_cr_mean = 0.504 * a
+    a_cr_lower = 0.38 * a
+    a_cr_upper = 0.66 * a
     
     # Display Outputs
-    st.subheader("Results Report:")
+    st.subheader("Structural Assessment Report:")
     
-    col_res1, col_res2 = st.columns(2)
-    col_res1.metric(label="Ultimate Shear Capacity (Vu)", value=f"{vu_kn:.2f} kN")
-    col_res2.metric(label="Crack Distance from Support (a_cr)", value=f"{a_cr:.2f} mm")
+    # Row 1: Shear Capacities
+    col_res1, col_res2, col_res3 = st.columns(3)
+    col_res1.metric(label="Predicted Capacity (V_pred)", value=f"{v_pred_kn:.2f} kN")
+    col_res2.metric(label="Safety Factor (γ_95)", value=f"{gamma_95:.3f}")
+    col_res3.metric(label="Design Capacity (V_design)", value=f"{v_design_kn:.2f} kN")
+    
+    # Row 2: Crack Distance
+    st.markdown("<br>", unsafe_allow_html=True)
+    col_res4, col_res5 = st.columns(2)
+    col_res4.metric(label="Critical Crack Distance (a_cr)", value=f"{a_cr_mean:.2f} mm")
+    col_res5.metric(label="90% Conformal Interval", value=f"[{a_cr_lower:.0f} - {a_cr_upper:.0f}] mm")
     
     # Information Box
-    st.info(f"Calculated Nominal Shear Stress (Vu/bd): {vu_over_bd:.3f} MPa")
+    st.info(f"Nominal Shear Stress (v): {vu_over_bd:.3f} MPa | Governing Regime Factor Applied based on 'min adj' rule.")
