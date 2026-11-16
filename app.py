@@ -45,10 +45,15 @@ def set_background(image_file):
                 color: #e0e0e0 !important; /* Slightly off-white for metric labels */
             }}
             
-            /* Input fields styling (optional: dark background for inputs) */
-            .stNumberInput input {{
-                background-color: rgba(255, 255, 255, 0.1);
-                color: white !important;
+            /* FIX: Input fields styling (Dark text inside white boxes) */
+            input[type="number"], div[data-baseweb="input"] input, .stNumberInput input {{
+                color: #1f1f1f !important; /* Dark text */
+                background-color: #ffffff !important; /* White background */
+            }}
+            
+            /* Make the +/- buttons inside the input boxes visible (dark color) */
+            div[data-baseweb="input"] svg {{
+                fill: #1f1f1f !important;
             }}
             </style>
             """,
@@ -88,7 +93,6 @@ st.markdown("---")
 # Calculation Block
 if st.button("Calculate Results", type="primary"):
     # Calculate shear stress term (Vu / bd)
-    # Note: (a/d) must be dimensionless
     a_over_d = a / d
     
     vu_over_bd = (21.7 
@@ -98,7 +102,6 @@ if st.button("Calculate Results", type="primary"):
                   * (a_over_d ** -0.352))
     
     # Calculate ultimate shear force (Newtons) and convert to KiloNewtons (kN)
-    # Vu = [Vu/(bd)] * b * d
     vu_newtons = vu_over_bd * b * d
     vu_kn = vu_newtons / 1000.0
     
