@@ -62,6 +62,14 @@ def set_background(image_file):
             div[data-testid="stAlert"] p, div[data-testid="stAlert"] span {{
                 color: #1f1f1f !important;
             }}
+            
+            /* Authors section styling */
+            .authors-section {{
+                font-size: 0.95rem;
+                margin-bottom: 1.5rem;
+                border-bottom: 1px solid rgba(255,255,255,0.2);
+                padding-bottom: 1rem;
+            }}
             </style>
             """,
             unsafe_allow_html=True
@@ -72,8 +80,18 @@ def set_background(image_file):
 # Apply background and custom CSS
 set_background("background.jpeg")
 
-# Title and Description
+# Title
 st.title("Shear Strength of Concrete Beams Without Stirrups")
+
+# Authors and Institution (Based on the manuscript)
+st.markdown("""
+<div class="authors-section">
+    <strong>Authors:</strong> Mohammad Saleh Rafighi, Mehrdad Boroushaki, Vahab Toufigh<br>
+    <strong>Institution:</strong> Sharif University of Technology, Tehran, Iran
+</div>
+""", unsafe_allow_html=True)
+
+# Description
 st.markdown("""
 This advanced tool evaluates the ultimate shear capacity ($V_{pred}$), the calibrated design shear capacity ($V_{design}$), and the critical diagonal crack distance ($a_{cr}$) incorporating regime-dependent conformal safety factors.
 """)
